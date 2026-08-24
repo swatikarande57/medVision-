@@ -22,25 +22,11 @@ Desktop.ini
 logs/
 
 # Backend (Java/Maven)
-backend/target/
-backend/.classpath
-backend/.project
-backend/.settings/
-
-# Frontend (Node)
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
-frontend/coverage/
-
-# AI service (Python)
-ai-service/.venv/
+.vscode/
 ai-service/venv/
 ai-service/__pycache__/
 ai-service/**/__pycache__/
 ai-service/*.py[cod]
-ai-service/.pytest_cache/
-ai-service/.mypy_cache/
 ai-service/.ruff_cache/
 ai-service/uploads/
 ai-service/artifacts/

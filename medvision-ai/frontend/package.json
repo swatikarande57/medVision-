@@ -1,26 +1,19 @@
 {
   "name": "medvision-frontend",
-  "private": true,
   "version": "0.1.0",
-  "type": "module",
-  "description": "MedVision AI — React frontend",
+  "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "lint": "oxlint",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@types/node": "^24.13.3",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "@vitejs/plugin-react": "^6.0.4",
-    "oxlint": "^1.75.0",
-    "typescript": "~6.0.2",
-    "vite": "^8.2.0"
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "^6.0.0",
+    "vite": "^5.0.0"
   }
 }
