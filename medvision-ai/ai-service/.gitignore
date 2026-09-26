@@ -4,6 +4,10 @@ venv/
 .env
 artifacts/
 uploads/
+storage_data/
+models/*.pt
+models/*.pth
+models/*.ckpt
 *.py[cod]
 .pytest_cache/
 .mypy_cache/

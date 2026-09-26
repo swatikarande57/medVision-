@@ -1,0 +1,18 @@
+Python: 3.13.7 (tags/v3.13.7:bcee1c3, Aug 14 2025, 14:15:11) [MSC v.1944 64 bit (AMD64)]
+
+fastapi: 0.141.1
+uvicorn: 0.52.4
+pydantic: 2.13.4
+pydantic_settings: 2.15.0
+numpy: 2.5.2
+PIL: 11.3.0
+pydicom: NOT INSTALLED
+httpx: NOT INSTALLED
+nibabel: NOT INSTALLED
+torch: NOT INSTALLED
+monai: NOT INSTALLED
+scipy: NOT INSTALLED
+
+torch not installed - cannot check CUDA
+
+Checkpoint: EXISTS (17.97 MB)

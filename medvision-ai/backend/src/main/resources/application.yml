@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: medvision-backend
+    
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:medvision}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USER:medvision_user}
+    password: ${DB_PASSWORD:Swati@1012}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      connection-timeout: 20000
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      pool-name: MedVisionHikariCP
+      
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+
+server:
+  port: ${BACKEND_PORT:8080}
+
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:MedVisionSecretKeyForJwtTokenGenerationAndValidationSecure256BitsSecret!}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+logging:
+  level:
+    org.springframework.web: INFO
+    org.hibernate.SQL: ERROR
+
+ai-service:
+  base-url: ${AI_SERVICE_BASE_URL:http://localhost:8000}
+  connect-timeout-ms: ${AI_SERVICE_CONNECT_TIMEOUT_MS:5000}
+  read-timeout-ms: ${AI_SERVICE_READ_TIMEOUT_MS:300000}
+  max-retries: ${AI_SERVICE_MAX_RETRIES:5}
+  polling-interval-ms: ${AI_SERVICE_POLLING_INTERVAL_MS:3000}

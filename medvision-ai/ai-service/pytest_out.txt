@@ -1,0 +1,238 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.7, pytest-9.0.2, pluggy-1.6.0
+rootdir: D:\medVision\medvision-ai\ai-service
+plugins: anyio-4.12.0, asyncio-1.3.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 12 items
+
+tests\test_dicom.py FF                                                   [ 16%]
+tests\test_health.py .                                                   [ 25%]
+tests\test_inference.py ..                                               [ 41%]
+tests\test_jobs.py ..                                                    [ 58%]
+tests\test_validation.py .....                                           [100%]
+
+================================== FAILURES ===================================
+__________________________ test_dicom_conversion_jpg __________________________
+
+tmp_path = WindowsPath('C:/Users/Swati/AppData/Local/Temp/pytest-of-Swati/pytest-1/test_dicom_conversion_jpg0')
+sample_jpeg_bytes = b'\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00\xff\xdb\x00C\x00\x08\x06\x06\x07\x06\x05\x08\x0...E\x14P\x01E\x14P\x01E\x14P\x01E\x14P\x01E\x14P\x01E\x14P\x01E\x14P\x01E\x14P\x01E\x14P\x01E\x14P\x01E\x14P\x07\xff\xd9'
+
+    def test_dicom_conversion_jpg(tmp_path, sample_jpeg_bytes):
+        # Create temp jpg file
+        jpg_file = tmp_path / "sample.jpg"
+        jpg_file.write_bytes(sample_jpeg_bytes)
+    
+>       result = dicom_service.convert_image_to_derived_dicom(str(jpg_file), "sample.jpg")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_dicom.py:11: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <app.services.dicom_service.DicomService object at 0x00000280803E78C0>
+image_path = 'C:\\Users\\Swati\\AppData\\Local\\Temp\\pytest-of-Swati\\pytest-1\\test_dicom_conversion_jpg0\\sample.jpg'
+original_filename = 'sample.jpg'
+
+    def convert_image_to_derived_dicom(
+        self, image_path: str, original_filename: str | None = None
+    ) -> dict:
+        """
+        Converts an image file (JPG/PNG) into a compliant Secondary Capture DICOM dataset.
+        Ensures NO fake acquisition parameters (TR/TE/SliceThickness) are fabricated.
+        Validates output by reading back with pydicom.dcmread().
+        """
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"Source image file not found: {image_path}")
+    
+        orig_name = original_filename or os.path.basename(image_path)
+        img = Image.open(image_path).convert("L")  # Convert to Grayscale 8-bit
+        img_np = np.array(img, dtype=np.uint8)
+    
+        height, width = img_np.shape
+    
+        # 1. Create File Meta Information
+        file_meta = FileMetaDataset()
+        file_meta.MediaStorageSOPClassUID = SecondaryCaptureImageStorage
+        file_meta.MediaStorageSOPInstanceUID = generate_uid()
+        file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
+    
+        # 2. Create File Dataset
+        filename_base = f"DERIVED_{file_meta.MediaStorageSOPInstanceUID}.dcm"
+        target_dicom_path = file_storage.get_dicom_path(filename_base)
+    
+        ds = FileDataset(target_dicom_path, {}, file_meta=file_meta, preamble=b"\x00" * 128)
+    
+        # 3. Required Patient / Study / Series Identification
+        now = datetime.datetime.now()
+        ds.PatientName = "DERIVED^PATIENT"
+        ds.PatientID = "DERIVED-PATIENT-001"
+        ds.PatientBirthDate = ""
+        ds.PatientSex = "O"
+    
+        ds.StudyInstanceUID = generate_uid()
+        ds.SeriesInstanceUID = generate_uid()
+        ds.SOPInstanceUID = file_meta.MediaStorageSOPInstanceUID
+        ds.SOPClassUID = SecondaryCaptureImageStorage
+    
+        ds.StudyDate = now.strftime("%Y%m%d")
+        ds.StudyTime = now.strftime("%H%M%S")
+        ds.AccessionNumber = ""
+        ds.Modality = "SC"  # Secondary Capture
+    
+        ds.StudyDescription = f"Derived Secondary Capture from {orig_name}"
+        ds.SeriesDescription = "MedVision Derived DICOM Conversion"
+        ds.ConversionType = "WSD"  # Workstation
+    
+        # 4. Image Pixel Module Elements
+        ds.SamplesPerPixel = 1
+        ds.PhotometricInterpretation = "MONOCHROME2"
+        ds.Rows = height
+        ds.Columns = width
+        ds.BitsAllocated = 8
+        ds.BitsStored = 8
+        ds.HighBit = 7
+        ds.PixelRepresentation = 0
+        ds.PixelData = img_np.tobytes()
+    
+        # Set compliant endianness flags
+        ds.is_little_endian = True
+        ds.is_implicit_VR = False
+    
+        # Save DICOM file
+        ds.save_as(target_dicom_path, write_like_original=False)
+        logger.info(f"Derived DICOM file created: {target_dicom_path}")
+    
+        # 5. Verify Readability with pydicom.dcmread
+>       verified_ds = pydicom.dcmread(target_dicom_path)
+                      ^^^^^^^
+E       NameError: name 'pydicom' is not defined
+
+app\services\dicom_service.py:84: NameError
+---------------------------- Captured stdout call -----------------------------
+[2026-09-15 17:45:06] [INFO] [medvision-ai] Derived DICOM file created: D:\medVision\medvision-ai\ai-service\storage_data\dicom\DERIVED_1.2.826.0.1.3680043.8.498.92010193125963649610134285037687543561.dcm
+------------------------------ Captured log call ------------------------------
+WARNING  pydicom:misc.py:82 'FileDataset.is_little_endian' will be removed in v4.0, set the Transfer Syntax UID or use the 'little_endian' argument with FileDataset.save_as() or dcmwrite() instead
+WARNING  pydicom:misc.py:82 'FileDataset.is_implicit_VR' will be removed in v4.0, set the Transfer Syntax UID or use the 'implicit_vr' argument with FileDataset.save_as() or dcmwrite() instead
+WARNING  pydicom:misc.py:82 'write_like_original' is deprecated and will be removed in v4.0, please use 'enforce_file_format' instead
+INFO     medvision-ai:dicom_service.py:81 Derived DICOM file created: D:\medVision\medvision-ai\ai-service\storage_data\dicom\DERIVED_1.2.826.0.1.3680043.8.498.92010193125963649610134285037687543561.dcm
+__________________________ test_dicom_conversion_png __________________________
+
+tmp_path = WindowsPath('C:/Users/Swati/AppData/Local/Temp/pytest-of-Swati/pytest-1/test_dicom_conversion_png0')
+sample_png_bytes = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x80\x00\x00\x00\x80\x08\x02\x00\x00\x00L\\\xf6\x9c\x00\x00\x01/IDATx...1a\x805\x00k\x00\xd6\x00\xac\x01X\x03\xb0\x06`\r\xc0\x1a0\xd6\x07A\xaa\x02^\xebG\xaa\x0f\x00\x00\x00\x00IEND\xaeB`\x82'
+
+    def test_dicom_conversion_png(tmp_path, sample_png_bytes):
+        png_file = tmp_path / "scan_brain.png"
+        png_file.write_bytes(sample_png_bytes)
+    
+>       result = dicom_service.convert_image_to_derived_dicom(str(png_file), "scan_brain.png")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_dicom.py:29: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <app.services.dicom_service.DicomService object at 0x00000280803E78C0>
+image_path = 'C:\\Users\\Swati\\AppData\\Local\\Temp\\pytest-of-Swati\\pytest-1\\test_dicom_conversion_png0\\scan_brain.png'
+original_filename = 'scan_brain.png'
+
+    def convert_image_to_derived_dicom(
+        self, image_path: str, original_filename: str | None = None
+    ) -> dict:
+        """
+        Converts an image file (JPG/PNG) into a compliant Secondary Capture DICOM dataset.
+        Ensures NO fake acquisition parameters (TR/TE/SliceThickness) are fabricated.
+        Validates output by reading back with pydicom.dcmread().
+        """
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"Source image file not found: {image_path}")
+    
+        orig_name = original_filename or os.path.basename(image_path)
+        img = Image.open(image_path).convert("L")  # Convert to Grayscale 8-bit
+        img_np = np.array(img, dtype=np.uint8)
+    
+        height, width = img_np.shape
+    
+        # 1. Create File Meta Information
+        file_meta = FileMetaDataset()
+        file_meta.MediaStorageSOPClassUID = SecondaryCaptureImageStorage
+        file_meta.MediaStorageSOPInstanceUID = generate_uid()
+        file_meta.TransferSyntaxUID = ExplicitVRLittleEndian
+    
+        # 2. Create File Dataset
+        filename_base = f"DERIVED_{file_meta.MediaStorageSOPInstanceUID}.dcm"
+        target_dicom_path = file_storage.get_dicom_path(filename_base)
+    
+        ds = FileDataset(target_dicom_path, {}, file_meta=file_meta, preamble=b"\x00" * 128)
+    
+        # 3. Required Patient / Study / Series Identification
+        now = datetime.datetime.now()
+        ds.PatientName = "DERIVED^PATIENT"
+        ds.PatientID = "DERIVED-PATIENT-001"
+        ds.PatientBirthDate = ""
+        ds.PatientSex = "O"
+    
+        ds.StudyInstanceUID = generate_uid()
+        ds.SeriesInstanceUID = generate_uid()
+        ds.SOPInstanceUID = file_meta.MediaStorageSOPInstanceUID
+        ds.SOPClassUID = SecondaryCaptureImageStorage
+    
+        ds.StudyDate = now.strftime("%Y%m%d")
+        ds.StudyTime = now.strftime("%H%M%S")
+        ds.AccessionNumber = ""
+        ds.Modality = "SC"  # Secondary Capture
+    
+        ds.StudyDescription = f"Derived Secondary Capture from {orig_name}"
+        ds.SeriesDescription = "MedVision Derived DICOM Conversion"
+        ds.ConversionType = "WSD"  # Workstation
+    
+        # 4. Image Pixel Module Elements
+        ds.SamplesPerPixel = 1
+        ds.PhotometricInterpretation = "MONOCHROME2"
+        ds.Rows = height
+        ds.Columns = width
+        ds.BitsAllocated = 8
+        ds.BitsStored = 8
+        ds.HighBit = 7
+        ds.PixelRepresentation = 0
+        ds.PixelData = img_np.tobytes()
+    
+        # Set compliant endianness flags
+        ds.is_little_endian = True
+        ds.is_implicit_VR = False
+    
+        # Save DICOM file
+        ds.save_as(target_dicom_path, write_like_original=False)
+        logger.info(f"Derived DICOM file created: {target_dicom_path}")
+    
+        # 5. Verify Readability with pydicom.dcmread
+>       verified_ds = pydicom.dcmread(target_dicom_path)
+                      ^^^^^^^
+E       NameError: name 'pydicom' is not defined
+
+app\services\dicom_service.py:84: NameError
+---------------------------- Captured stdout call -----------------------------
+[2026-09-15 17:45:06] [INFO] [medvision-ai] Derived DICOM file created: D:\medVision\medvision-ai\ai-service\storage_data\dicom\DERIVED_1.2.826.0.1.3680043.8.498.59933633209655237176289606494613912109.dcm
+------------------------------ Captured log call ------------------------------
+WARNING  pydicom:misc.py:82 'FileDataset.is_little_endian' will be removed in v4.0, set the Transfer Syntax UID or use the 'little_endian' argument with FileDataset.save_as() or dcmwrite() instead
+WARNING  pydicom:misc.py:82 'FileDataset.is_implicit_VR' will be removed in v4.0, set the Transfer Syntax UID or use the 'implicit_vr' argument with FileDataset.save_as() or dcmwrite() instead
+WARNING  pydicom:misc.py:82 'write_like_original' is deprecated and will be removed in v4.0, please use 'enforce_file_format' instead
+INFO     medvision-ai:dicom_service.py:81 Derived DICOM file created: D:\medVision\medvision-ai\ai-service\storage_data\dicom\DERIVED_1.2.826.0.1.3680043.8.498.59933633209655237176289606494613912109.dcm
+============================== warnings summary ===============================
+tests/test_dicom.py::test_dicom_conversion_jpg
+tests/test_dicom.py::test_dicom_conversion_png
+  C:\Program Files\Python313\Lib\site-packages\pydicom\dataset.py:1378: DeprecationWarning: 'FileDataset.is_little_endian' will be removed in v4.0, set the Transfer Syntax UID or use the 'little_endian' argument with FileDataset.save_as() or dcmwrite() instead
+    warn_and_log(
+
+tests/test_dicom.py::test_dicom_conversion_jpg
+tests/test_dicom.py::test_dicom_conversion_png
+  C:\Program Files\Python313\Lib\site-packages\pydicom\dataset.py:1337: DeprecationWarning: 'FileDataset.is_implicit_VR' will be removed in v4.0, set the Transfer Syntax UID or use the 'implicit_vr' argument with FileDataset.save_as() or dcmwrite() instead
+    warn_and_log(
+
+tests/test_dicom.py::test_dicom_conversion_jpg
+tests/test_dicom.py::test_dicom_conversion_png
+  C:\Program Files\Python313\Lib\site-packages\pydicom\filewriter.py:1309: DeprecationWarning: 'write_like_original' is deprecated and will be removed in v4.0, please use 'enforce_file_format' instead
+    warn_and_log(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_dicom.py::test_dicom_conversion_jpg - NameError: name 'pydi...
+FAILED tests/test_dicom.py::test_dicom_conversion_png - NameError: name 'pydi...
+================== 2 failed, 10 passed, 6 warnings in 3.21s ===================
